@@ -1,0 +1,99 @@
+usertype AuthenticationRequest;
+usertype RequestApproved;
+usertype Message;
+usertype UniqueID;
+usertype  IDValuePairs;
+hashfunction h;
+usertype TimeStamp;
+usertype SessionKey;
+secret CloudSecret1,CloudSecret2;
+secret XOR: Function;
+macro R=fSec(SeedSecret);
+# C,A,B are device addresses
+
+protocol Block(A,B,C)
+{
+    role B
+    {
+        fresh nb: Nonce;
+        var na,nc: Nonce;
+        fresh Tb: TimeStamp;
+        var Tc,Ta: TimeStamp;
+	fresh AReq: AuthenticationRequest;
+	var RApp: RequestApproved;
+	fresh kAB: SessionKey;
+	var UID: UniqueID;
+	var IDValue: IDValuePairs;
+
+        send_1(B,A, {{B,AReq,nb,Tb,h(nb,Tb),{kAB}k(A,B)}sk(B)} pk(A) );
+	recv_2(A,B, {UID,na,Ta,h(na,Ta),h(CloudSecret1)}kAB );
+	claim(B,Running,A,nb,na);
+	#send_3(B,C, {{B,AReq,nb,Tb,h(nb,Tb)}sk(B)}pk(C) );
+	#recv_4(C,B, {{C,IDValue,nc,Tc,h(nc,Tc)}sk(C)}pk(B) );
+	macro X = XOR(CloudSecret1,CloudSecret2);
+	send_3(B,C, {B,nb,Tb,h(nb,Tb),X,{X}sk(B)}pk(C) );
+	recv_4(C,B, {{C,RApp,nc,Tc,h(nc,Tc)}sk(C)}pk(B) );
+
+	claim(B,Running,C,nb);
+        claim(B,Secret,nb);
+        claim(B,Secret,kAB);
+	#claim(B,Alive);
+        #claim(B,Weakagree);
+        #claim(B,Commit,C,nc);
+        #claim(B,Commit,A,na);
+        claim(B,Niagree);
+	claim(B,Nisynch);
+    }
+
+    role A
+    {
+        fresh na: Nonce;
+        var nb,nc: Nonce;
+        fresh Ta: TimeStamp;
+        var Tb,Tc: TimeStamp;
+	fresh UID: UniqueID;
+	var RApp: RequestApproved;
+	var AReq: AuthenticationRequest;
+	var kAB: SessionKey;
+
+        recv_1(B,A, {{B,AReq,nb,Tb,h(nb,Tb),{kAB}k(A,B)}sk(B)} pk(A) );
+	claim(A,Running,B,na);
+        send_2(A,B, {UID,na,Ta,h(na,Ta),h(CloudSecret1)}kAB );
+
+        claim(A,Secret,na);
+        claim(A,Secret,kAB);
+	claim(A,Alive);
+        #claim(A,Weakagree);
+        claim(A,Commit,B,kAB);
+        #claim(A,Commit,C,nc);
+        claim(A,Niagree);
+	claim(A,Nisynch);
+    }    
+    
+    role C
+    {
+        var na,nb: Nonce;
+	fresh nc: Nonce;
+        fresh Tc: TimeStamp;
+        var Ta,Tb: TimeStamp;
+	fresh IDValue: IDValuePairs;
+	fresh RApp: RequestApproved;
+	var AReq: AuthenticationRequest;
+	var UID: UniqueID;
+
+	#recv_3(B,C, {{B,AReq,nb,Tb,h(nb,Tb)}sk(B)}pk(C) );
+	#send_4(C,B, {{C,IDValue,nc,Tc,h(nc,Tc)}sk(C)}pk(B) );
+	recv_3(B,C, {B,nb,Tb,h(nb,Tb),X,{X}sk(B)}pk(C) );
+	macro Xi = XOR(CloudSecret1,CloudSecret2);
+	match(Xi,X);
+	send_4(C,B, {{C,RApp,nc,Tc,h(nc,Tc)}sk(C)}pk(B) );
+	
+        claim(C,Secret,nc);
+	claim(C,Alive);
+        #claim(C,Weakagree);
+        #claim(C,Commit,A,na);
+        #claim(C,Commit,B,nb);
+        claim(C,Niagree);
+	claim(C,Nisynch);
+    }
+}

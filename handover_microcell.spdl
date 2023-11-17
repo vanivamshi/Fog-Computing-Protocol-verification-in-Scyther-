@@ -1,0 +1,113 @@
+usertype  NonceRequest;
+usertype RequestApproved;
+usertype Reputation;
+usertype UniqueID;
+usertype EncryptionSecret;
+usertype OldID;
+hashfunction h;
+usertype TimeStamp;
+secret RanNum;     # RanNum = random number
+
+protocol Block(A,B,C,D)
+{
+    role A
+    {
+        fresh na: Nonce;
+        var nb,nd,nc: Nonce;
+        fresh Ta: TimeStamp;
+        var Tb,Td,Tc: TimeStamp;
+	fresh NReq: NonceRequest;
+	fresh UID: UniqueID;
+	fresh Rep: Reputation;
+	var RApp: RequestApproved;
+
+	macro H = h(UID,Rep);
+        send_1(A,B, {{NReq,UID,Rep,na,Ta,h(na,Ta),D,H}sk(A)}pk(B) );
+	send_3(A,C, {{NReq,UID,Rep,na,Ta,h(na,Ta)}sk(A)}pk(C) );
+	recv_6(C,A, {{RApp,Tc,nc,h(nc,Tc)}sk(C)}pk(A) );
+
+	claim(A,Running,B,na);
+        claim(A,Secret,na);
+	claim(A,Alive);
+        claim(A,Weakagree);
+        #claim(A,Commit,C,nc,na);
+        #claim(A,Commit,B,na);
+        claim(A,Niagree);
+	claim(A,Nisynch);
+    }
+
+    role B
+    {
+        var na,nc: Nonce;
+	fresh nb: Nonce;
+        fresh Tb: TimeStamp;
+        var Ta,Tc: TimeStamp;
+	var Rep: Reputation;
+	fresh RApp: RequestApproved;
+	var UID: UniqueID;
+	var NReq: NonceRequest;
+
+	recv_1(A,B, {{NReq,UID,Rep,na,Ta,h(na,Ta),D,H}sk(A)}pk(B) );
+	send_2(B,D, {{D,UID,H,nb,Tb,h(nb,Tb)}sk(B)}pk(D));
+
+        claim(B,Secret,nb);
+	claim(B,Secret,H);
+	claim(B,Alive);
+        claim(B,Weakagree);
+        #claim(B,Commit,A,na);
+        #claim(B,Commit,C,na,nb);
+        claim(B,Niagree);
+	claim(B,Nisynch);
+    }
+
+    role C
+    {
+        fresh nc: Nonce;
+        var na,nb,nd: Nonce;
+        fresh Tc: TimeStamp;
+        var Ta,Tb,Td: TimeStamp;
+	var UID: UniqueID;
+	fresh RApp: RequestApproved;
+	var Rep: Reputation;
+	var NReq: NonceRequest;
+
+	recv_3(A,C, {{NReq,UID,Rep,na,Ta,h(na,Ta)}sk(A)}pk(C) );
+	send_4(C,D, {{UID,Rep,Tc,nc,h(nc,Tc)}sk(C)}pk(D) );
+	recv_5(D,C, {{RApp,nd,Td,h(nd,Td)}sk(D)}pk(C) );
+	send_6(C,A, {{RApp,Tc,nc,h(nc,Tc)}sk(C)}pk(A) );
+
+        claim(C,Secret,nc);
+	claim(C,Alive);
+        claim(C,Weakagree);
+        #claim(C,Commit,A,na,nc);
+        #claim(C,Commit,B,nb,nc);
+        claim(C,Niagree);
+	claim(C,Nisynch);
+    }    
+
+    role D
+    {
+        var nb,nc: Nonce;
+	fresh nd: Nonce;
+        fresh Td: TimeStamp;
+        var Tb,Tc: TimeStamp;
+	var Rep: Reputation;
+	fresh RApp: RequestApproved;
+	var UID: UniqueID;
+	var NReq: NonceRequest;
+
+	recv_2(B,D, {{D,UID,H,nb,Tb,h(nb,Tb)}sk(B)}pk(D));
+	recv_4(C,D, {{UID,Rep,Tc,nc,h(nc,Tc)}sk(C)}pk(D) );
+	macro H1 = h(UID,Rep);
+	match(H,H1);
+	send_5(D,C, {{RApp,nd,Td,h(nd,Td)}sk(D)}pk(C) );
+
+        claim(D,Secret,nd);
+	claim(D,Secret,H1);
+	claim(D,Alive);
+        claim(D,Weakagree);
+        #claim(D,Commit,C,nc,nd);
+        claim(D,Niagree);
+	claim(D,Nisynch);
+    }
+}

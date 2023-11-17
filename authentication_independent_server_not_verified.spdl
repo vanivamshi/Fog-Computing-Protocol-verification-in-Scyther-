@@ -1,0 +1,97 @@
+usertype AuthenticationRequest;
+usertype RequestApproved;
+usertype Message;
+usertype UniqueID;
+usertype  IDValuePairs;
+hashfunction h;
+usertype TimeStamp;
+usertype SessionKey;
+secret XOR: Function;
+secret fSec,SeedSecret;
+#macro R=fSec(SeedSecret);
+# C,A,B are device addresses
+
+protocol Block(A,B,C)
+{
+    role C
+    {
+        var na,nb: Nonce;
+	fresh nc: Nonce;
+        fresh Tc: TimeStamp;
+        var Ta,Tb: TimeStamp;
+	fresh IDValue: IDValuePairs;
+	var RApp: RequestApproved;
+	fresh AReq: AuthenticationRequest;
+        #fresh fSec,SeedSecret: EncryptionSecret;
+	fresh UID: UniqueID;
+
+	macro R = fSec(SeedSecret);
+	send_1(C,B, {{AReq,UID,h(R),nc,Tc,h(nc,Tc),{SeedSecret}pk(A)}sk(C)}pk(B) );
+	recv_4(B,C, {{B,UID,RApp,nb,Tb,h(nb,Tb)}sk(B)}pk(C) );
+
+	claim(C,Secret,nc);
+	claim(C,Alive);
+        #claim(C,Weakagree);
+        #claim(C,Commit,A,na);
+        #claim(C,Commit,B,nb);
+        claim(C,Niagree);
+	claim(C,Nisynch);
+    }
+
+    role B
+    {
+        fresh nb: Nonce;
+        var na,nc: Nonce;
+        fresh Tb: TimeStamp;
+        var Tc,Ta: TimeStamp;
+	fresh AReq: AuthenticationRequest;
+	fresh RApp: RequestApproved;
+	fresh kAB: SessionKey;
+	var UID: UniqueID;
+	var IDValue: IDValuePairs;
+	var message: Message;
+
+	macro R1 = fSec(SeedSecret);
+	recv_1(C,B, {{AReq,UID,h(R),nc,Tc,h(nc,Tc),{SeedSecret}pk(A)}sk(C)}pk(B) );
+	send_2(B,A, {{B,AReq,nb,Tb,h(nb,Tb),{SeedSecret}pk(A)}sk(B)} pk(A) );
+	recv_3(A,B, {{UID,na,Ta,h(na,Ta),h(R1)}sk(A)}pk(B) );
+	match(R,R1);
+	send_4(B,C, {{B,UID,RApp,nb,Tb,h(nb,Tb)}sk(B)}pk(C) );
+
+	claim(B,Running,C,nb);
+        claim(B,Secret,nb);
+        #claim(B,Secret,kAB);
+	claim(B,Alive);
+        #claim(B,Weakagree);
+        #claim(B,Commit,C,nc);
+        #claim(B,Commit,A,na);
+        claim(B,Niagree);
+	claim(B,Nisynch);
+    }
+
+    role A
+    {
+        fresh na: Nonce;
+        var nb,nc: Nonce;
+        fresh Ta: TimeStamp;
+        var Tb,Tc: TimeStamp;
+	fresh UID: UniqueID;
+	var RApp: RequestApproved;
+	var AReq: AuthenticationRequest;
+	fresh message: Message;
+	var kAB: SessionKey;
+
+	recv_2(B,A, {{B,AReq,nb,Tb,h(nb,Tb),{SeedSecret}pk(A)}sk(B)} pk(A) );
+	macro R1 = fSec(SeedSecret);
+	send_3(A,B, {{UID,na,Ta,h(na,Ta),h(R1)}sk(A)}pk(B) );
+
+        claim(A,Secret,na);
+        #claim(A,Secret,kAB);
+	claim(A,Alive);
+        #claim(A,Weakagree);
+        #claim(A,Commit,B,kAB);
+        #claim(A,Commit,C,nc);
+        claim(A,Niagree);
+	claim(A,Nisynch);
+    }    
+}
