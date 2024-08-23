@@ -1,5 +1,7 @@
 # Protocol-verification-in-Scyther
-This folder contains various files containing Scyther programs (formal verification of authentication protocols) written in SPDL. The programs simulate the operation, movement, clustering and load distribution between NB-IoT devices and fog nodes for various device specifications (regular and heavy vehicles), fog servers mounted on base stations (service provider-controlled and private fog servers) and cell range (cells and microcells). Details of each of the files are given below.
+This folder contains various files containing Scyther programs (formal verification of authentication protocols) written in SPDL, developoed as a part of my Ph.D. research. They are the initial version of the protocols and contain some errors. The final version will be updated after the paper acceptance.
+
+The programs simulate the operation, movement, clustering and load distribution between NB-IoT devices and fog nodes for various device specifications (regular and heavy vehicles), fog servers mounted on base stations (service provider-controlled and private fog servers) and cell range (cells and microcells). Details of each of the files are given below.
 
 1] authentication_cell_microcell - authentication of devices moving between cells and microcells
 
